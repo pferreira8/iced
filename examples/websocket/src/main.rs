@@ -9,6 +9,7 @@ use iced::{
     Application, Color, Command, Element, Length, Settings, Subscription, Theme,
 };
 use once_cell::sync::Lazy;
+use tokio::time::Instant;
 
 pub fn main() -> iced::Result {
     WebSocket::run(Settings::default())
@@ -86,6 +87,14 @@ impl Application for WebSocket {
                         scrollable::RelativeOffset::END,
                     )
                 }
+                echo::Event::TimeStamp(message) => {
+                    self.messages.push(echo::Message::TimeStamp(message));
+
+                    scrollable::snap_to(
+                        MESSAGE_LOG.clone(),
+                        scrollable::RelativeOffset::END,
+                    )
+                }
             },
             Message::Server => Command::none(),
         }
@@ -140,6 +149,9 @@ impl Application for WebSocket {
                 if let Some(message) = echo::Message::new(&self.new_message) {
                     input = input.on_submit(Message::Send(message.clone()));
                     button = button.on_press(Message::Send(message));
+                    
+                } else {
+                    Message::Send(echo::Message::TimeStamp(Instant::now()));
                 }
             }
 

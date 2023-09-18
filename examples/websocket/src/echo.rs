@@ -8,6 +8,7 @@ use futures::sink::SinkExt;
 use futures::stream::StreamExt;
 
 use async_tungstenite::tungstenite;
+use tokio::time::Instant;
 use std::fmt;
 
 pub fn connect() -> Subscription<Event> {
@@ -20,6 +21,9 @@ pub fn connect() -> Subscription<Event> {
             let mut state = State::Disconnected;
 
             loop {
+                // TIMESTAMP IS SENT TO WINDOW WHEN INPUT BUTTON IS PRESSED
+                let _ = output.send(Event::TimeStamp(Instant::now())).await;
+                //
                 match &mut state {
                     State::Disconnected => {
                         const ECHO_SERVER: &str = "ws://127.0.0.1:3030";
@@ -50,12 +54,13 @@ pub fn connect() -> Subscription<Event> {
                     }
                     State::Connected(websocket, input) => {
                         let mut fused_websocket = websocket.by_ref().fuse();
-
+                        
                         futures::select! {
                             received = fused_websocket.select_next_some() => {
                                 match received {
                                     Ok(tungstenite::Message::Text(message)) => {
                                        let _ = output.send(Event::MessageReceived(Message::User(message))).await;
+                                       
                                     }
                                     Err(_) => {
                                         let _ = output.send(Event::Disconnected).await;
@@ -100,6 +105,7 @@ pub enum Event {
     Connected(Connection),
     Disconnected,
     MessageReceived(Message),
+    TimeStamp(Instant)
 }
 
 #[derive(Debug, Clone)]
@@ -118,6 +124,7 @@ pub enum Message {
     Connected,
     Disconnected,
     User(String),
+    TimeStamp(Instant)
 }
 
 impl Message {
@@ -146,6 +153,7 @@ impl fmt::Display for Message {
                 write!(f, "Connection lost... Retrying...")
             }
             Message::User(message) => write!(f, "{message}"),
+            Message::TimeStamp(message) => write!(f, "{:?}", message),
         }
     }
 }
