@@ -76,7 +76,7 @@ where
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::Basic,
             font: None,
-            handle: Default::default(),
+            handle: Handle::default(),
             style: Default::default(),
         }
     }
@@ -235,7 +235,7 @@ where
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let font = self.font.unwrap_or_else(|| renderer.default_font());
         draw(
@@ -253,7 +253,8 @@ where
             &self.handle,
             &self.style,
             || tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
-        )
+            viewport,
+        );
     }
 
     fn overlay<'b>(
@@ -415,23 +416,17 @@ where
     for (option, paragraph) in options.iter().zip(state.options.iter_mut()) {
         let label = option.to_string();
 
-        renderer.update_paragraph(
-            paragraph,
-            Text {
-                content: &label,
-                ..option_text
-            },
-        );
+        paragraph.update(Text {
+            content: &label,
+            ..option_text
+        });
     }
 
     if let Some(placeholder) = placeholder {
-        renderer.update_paragraph(
-            &mut state.placeholder,
-            Text {
-                content: placeholder,
-                ..option_text
-            },
-        );
+        state.placeholder.update(Text {
+            content: placeholder,
+            ..option_text
+        });
     }
 
     let max_width = match width {
@@ -637,6 +632,7 @@ pub fn draw<'a, T, Renderer>(
     handle: &Handle<Renderer::Font>,
     style: &<Renderer::Theme as StyleSheet>::Style,
     state: impl FnOnce() -> &'a State<Renderer::Paragraph>,
+    viewport: &Rectangle,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
@@ -721,6 +717,7 @@ pub fn draw<'a, T, Renderer>(
                 bounds.center_y(),
             ),
             style.handle_color,
+            *viewport,
         );
     }
 
@@ -749,6 +746,7 @@ pub fn draw<'a, T, Renderer>(
             } else {
                 style.placeholder_color
             },
+            *viewport,
         );
     }
 }

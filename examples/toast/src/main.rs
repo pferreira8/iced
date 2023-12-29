@@ -210,7 +210,7 @@ mod toast {
     }
 
     impl Status {
-        pub const ALL: &[Self] =
+        pub const ALL: &'static [Self] =
             &[Self::Primary, Self::Secondary, Self::Success, Self::Danger];
     }
 
@@ -511,6 +511,7 @@ mod toast {
             renderer: &Renderer,
             bounds: Size,
             position: Point,
+            _translation: Vector,
         ) -> layout::Node {
             let limits = layout::Limits::new(Size::ZERO, bounds)
                 .width(Length::Fill)
@@ -538,7 +539,9 @@ mod toast {
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
         ) -> event::Status {
-            if let Event::Window(window::Event::RedrawRequested(now)) = &event {
+            if let Event::Window(_, window::Event::RedrawRequested(now)) =
+                &event
+            {
                 let mut next_redraw: Option<window::RedrawRequest> = None;
 
                 self.instants.iter_mut().enumerate().for_each(
@@ -639,7 +642,7 @@ mod toast {
                         child
                             .as_widget()
                             .operate(state, layout, renderer, operation);
-                    })
+                    });
             });
         }
 

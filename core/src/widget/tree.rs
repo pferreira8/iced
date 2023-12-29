@@ -61,13 +61,13 @@ impl Tree {
         Renderer: crate::Renderer,
     {
         if self.tag == new.borrow().tag() {
-            new.borrow().diff(self)
+            new.borrow().diff(self);
         } else {
             *self = Self::new(new);
         }
     }
 
-    /// Reconciliates the children of the tree with the provided list of widgets.
+    /// Reconciles the children of the tree with the provided list of widgets.
     pub fn diff_children<'a, Message, Renderer>(
         &mut self,
         new_children: &[impl Borrow<dyn Widget<Message, Renderer> + 'a>],
@@ -78,7 +78,7 @@ impl Tree {
             new_children,
             |tree, widget| tree.diff(widget.borrow()),
             |widget| Self::new(widget.borrow()),
-        )
+        );
     }
 
     /// Reconciliates the children of the tree with the provided list of widgets using custom

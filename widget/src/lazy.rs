@@ -18,7 +18,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
 use crate::core::Element;
 use crate::core::{
-    self, Clipboard, Hasher, Length, Point, Rectangle, Shell, Size,
+    self, Clipboard, Hasher, Length, Point, Rectangle, Shell, Size, Vector,
 };
 use crate::runtime::overlay::Nested;
 
@@ -135,7 +135,7 @@ where
 
             (*self.element.borrow_mut()) = Some(current.element.clone());
             self.with_element(|element| {
-                tree.diff_children(std::slice::from_ref(&element.as_widget()))
+                tree.diff_children(std::slice::from_ref(&element.as_widget()));
             });
         } else {
             (*self.element.borrow_mut()) = Some(current.element.clone());
@@ -243,8 +243,8 @@ where
                 layout,
                 cursor,
                 viewport,
-            )
-        })
+            );
+        });
     }
 
     fn overlay<'b>(
@@ -333,9 +333,10 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        translation: Vector,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            overlay.layout(renderer, bounds, position)
+            overlay.layout(renderer, bounds, position, translation)
         })
         .unwrap_or_default()
     }

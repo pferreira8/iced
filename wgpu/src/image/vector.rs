@@ -1,9 +1,10 @@
 use crate::core::svg;
 use crate::core::{Color, Size};
+use crate::graphics::text;
 use crate::image::atlas::{self, Atlas};
 
 use resvg::tiny_skia;
-use resvg::usvg;
+use resvg::usvg::{self, TreeTextToPath};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 
@@ -49,15 +50,15 @@ impl Cache {
             return self.svgs.get(&handle.id()).unwrap();
         }
 
-        let svg = match handle.data() {
-            svg::Data::Path(path) => {
-                let tree = fs::read_to_string(path).ok().and_then(|contents| {
+        let mut svg = match handle.data() {
+            svg::Data::Path(path) => fs::read_to_string(path)
+                .ok()
+                .and_then(|contents| {
                     usvg::Tree::from_str(&contents, &usvg::Options::default())
                         .ok()
-                });
-
-                tree.map(Svg::Loaded).unwrap_or(Svg::NotFound)
-            }
+                })
+                .map(Svg::Loaded)
+                .unwrap_or(Svg::NotFound),
             svg::Data::Bytes(bytes) => {
                 match usvg::Tree::from_data(bytes, &usvg::Options::default()) {
                     Ok(tree) => Svg::Loaded(tree),
@@ -65,6 +66,15 @@ impl Cache {
                 }
             }
         };
+
+        if let Svg::Loaded(svg) = &mut svg {
+            if svg.has_text_nodes() {
+                let mut font_system =
+                    text::font_system().write().expect("Write font system");
+
+                svg.convert_text(font_system.raw().db_mut());
+            }
+        }
 
         let _ = self.svgs.insert(handle.id(), svg);
         self.svgs.get(&handle.id()).unwrap()
@@ -152,7 +162,7 @@ impl Cache {
                 let allocation =
                     atlas.upload(device, encoder, width, height, &rgba)?;
 
-                log::debug!("allocating {} {}x{}", id, width, height);
+                log::debug!("allocating {id} {width}x{height}");
 
                 let _ = self.svg_hits.insert(id);
                 let _ = self.rasterized_hits.insert(key);

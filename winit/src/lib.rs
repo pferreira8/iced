@@ -22,15 +22,9 @@
     missing_debug_implementations,
     missing_docs,
     unused_results,
-    clippy::extra_unused_lifetimes,
-    clippy::from_over_into,
-    clippy::needless_borrow,
-    clippy::new_without_default,
-    clippy::useless_conversion,
     unsafe_code,
     rustdoc::broken_intra_doc_links
 )]
-#![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub use iced_graphics as graphics;
 pub use iced_runtime as runtime;
@@ -38,6 +32,9 @@ pub use iced_runtime::core;
 pub use iced_runtime::futures;
 pub use iced_style as style;
 pub use winit;
+
+#[cfg(feature = "multi-window")]
+pub mod multi_window;
 
 #[cfg(feature = "application")]
 pub mod application;
@@ -49,17 +46,11 @@ pub mod settings;
 pub mod system;
 
 mod error;
-mod position;
 mod proxy;
 
 #[cfg(feature = "application")]
 pub use application::Application;
-#[cfg(feature = "trace")]
-pub use application::Profiler;
 pub use clipboard::Clipboard;
 pub use error::Error;
-pub use position::Position;
 pub use proxy::Proxy;
 pub use settings::Settings;
-
-pub use iced_graphics::Viewport;

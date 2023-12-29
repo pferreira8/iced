@@ -1,16 +1,29 @@
 use crate::core::alignment;
 use crate::core::text;
 use crate::core::{Color, Font, Pixels, Point, Rectangle};
+use crate::graphics::text::editor;
 use crate::graphics::text::paragraph;
 
-/// A paragraph of text.
+/// A text primitive.
 #[derive(Debug, Clone)]
 pub enum Text<'a> {
-    Managed {
+    /// A paragraph.
+    #[allow(missing_docs)]
+    Paragraph {
         paragraph: paragraph::Weak,
         position: Point,
         color: Color,
+        clip_bounds: Rectangle,
     },
+    /// An editor.
+    #[allow(missing_docs)]
+    Editor {
+        editor: editor::Weak,
+        position: Point,
+        color: Color,
+        clip_bounds: Rectangle,
+    },
+    /// A cached text.
     Cached(Cached<'a>),
 }
 
@@ -42,4 +55,7 @@ pub struct Cached<'a> {
 
     /// The shaping strategy of the text.
     pub shaping: text::Shaping,
+
+    /// The clip bounds of the text.
+    pub clip_bounds: Rectangle,
 }

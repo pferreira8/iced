@@ -1,7 +1,6 @@
 use crate::core::{Background, Color, Gradient, Rectangle, Vector};
 use crate::graphics::backend;
-use crate::graphics::text;
-use crate::graphics::{Damage, Viewport};
+use crate::graphics::Viewport;
 use crate::primitive::{self, Primitive};
 
 use std::borrow::Cow;
@@ -362,11 +361,10 @@ impl Backend {
                 paragraph,
                 position,
                 color,
+                clip_bounds: text_clip_bounds,
             } => {
                 let physical_bounds =
-                    (Rectangle::new(*position, paragraph.min_bounds)
-                        + translation)
-                        * scale_factor;
+                    (*text_clip_bounds + translation) * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;
@@ -384,6 +382,31 @@ impl Backend {
                     clip_mask,
                 );
             }
+            Primitive::Editor {
+                editor,
+                position,
+                color,
+                clip_bounds: text_clip_bounds,
+            } => {
+                let physical_bounds =
+                    (*text_clip_bounds + translation) * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
+                self.text_pipeline.draw_editor(
+                    editor,
+                    *position + translation,
+                    *color,
+                    scale_factor,
+                    pixels,
+                    clip_mask,
+                );
+            }
             Primitive::Text {
                 content,
                 bounds,
@@ -394,9 +417,10 @@ impl Backend {
                 horizontal_alignment,
                 vertical_alignment,
                 shaping,
+                clip_bounds: text_clip_bounds,
             } => {
                 let physical_bounds =
-                    (primitive.bounds() + translation) * scale_factor;
+                    (*text_clip_bounds + translation) * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;
@@ -421,7 +445,11 @@ impl Backend {
                 );
             }
             #[cfg(feature = "image")]
-            Primitive::Image { handle, bounds } => {
+            Primitive::Image {
+                handle,
+                filter_method,
+                bounds,
+            } => {
                 let physical_bounds = (*bounds + translation) * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
@@ -437,14 +465,19 @@ impl Backend {
                 )
                 .post_scale(scale_factor, scale_factor);
 
-                self.raster_pipeline
-                    .draw(handle, *bounds, pixels, transform, clip_mask);
+                self.raster_pipeline.draw(
+                    handle,
+                    *filter_method,
+                    *bounds,
+                    pixels,
+                    transform,
+                    clip_mask,
+                );
             }
             #[cfg(not(feature = "image"))]
             Primitive::Image { .. } => {
                 log::warn!(
-                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
-                    primitive
+                    "Unsupported primitive in `iced_tiny_skia`: {primitive:?}",
                 );
             }
             #[cfg(feature = "svg")]
@@ -473,8 +506,7 @@ impl Backend {
             #[cfg(not(feature = "svg"))]
             Primitive::Svg { .. } => {
                 log::warn!(
-                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
-                    primitive
+                    "Unsupported primitive in `iced_tiny_skia`: {primitive:?}",
                 );
             }
             Primitive::Custom(primitive::Custom::Fill {
@@ -805,10 +837,6 @@ impl iced_graphics::Backend for Backend {
 }
 
 impl backend::Text for Backend {
-    fn font_system(&self) -> &text::FontSystem {
-        self.text_pipeline.font_system()
-    }
-
     fn load_font(&mut self, font: Cow<'static, [u8]>) {
         self.text_pipeline.load_font(font);
     }

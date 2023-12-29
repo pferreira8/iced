@@ -35,7 +35,7 @@ impl<Theme> Compositor<Theme> {
             ..Default::default()
         });
 
-        log::info!("{:#?}", settings);
+        log::info!("{settings:#?}");
 
         #[cfg(not(target_arch = "wasm32"))]
         if log::max_level() >= log::LevelFilter::Info {
@@ -43,7 +43,7 @@ impl<Theme> Compositor<Theme> {
                 .enumerate_adapters(settings.internal_backend)
                 .map(|adapter| adapter.get_info())
                 .collect();
-            log::info!("Available adapters: {:#?}", available_adapters);
+            log::info!("Available adapters: {available_adapters:#?}");
         }
 
         #[allow(unsafe_code)]
@@ -83,7 +83,7 @@ impl<Theme> Compositor<Theme> {
             })
         })?;
 
-        log::info!("Selected format: {:?}", format);
+        log::info!("Selected format: {format:?}");
 
         #[cfg(target_arch = "wasm32")]
         let limits = [wgpu::Limits::downlevel_webgl2_defaults()
@@ -139,16 +139,14 @@ impl<Theme> Compositor<Theme> {
 pub fn new<Theme, W: HasRawWindowHandle + HasRawDisplayHandle>(
     settings: Settings,
     compatible_window: Option<&W>,
-) -> Result<(Compositor<Theme>, Backend), Error> {
+) -> Result<Compositor<Theme>, Error> {
     let compositor = futures::executor::block_on(Compositor::request(
         settings,
         compatible_window,
     ))
     .ok_or(Error::GraphicsAdapterNotFound)?;
 
-    let backend = compositor.create_backend();
-
-    Ok((compositor, backend))
+    Ok(compositor)
 }
 
 /// Presents the given primitives with the given [`Compositor`] and [`Backend`].
@@ -178,6 +176,7 @@ pub fn present<Theme, T: AsRef<str>>(
                 &compositor.queue,
                 &mut encoder,
                 Some(background_color),
+                frame.texture.format(),
                 view,
                 primitives,
                 viewport,
@@ -213,17 +212,16 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
     fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
         settings: Self::Settings,
         compatible_window: Option<&W>,
-    ) -> Result<(Self, Self::Renderer), Error> {
-        let (compositor, backend) = new(settings, compatible_window)?;
+    ) -> Result<Self, Error> {
+        new(settings, compatible_window)
+    }
 
-        Ok((
-            compositor,
-            Renderer::new(
-                backend,
-                settings.default_font,
-                settings.default_text_size,
-            ),
-        ))
+    fn create_renderer(&self) -> Self::Renderer {
+        Renderer::new(
+            self.create_backend(),
+            self.settings.default_font,
+            self.settings.default_text_size,
+        )
     }
 
     fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
@@ -357,6 +355,7 @@ pub fn screenshot<Theme, T: AsRef<str>>(
         &compositor.queue,
         &mut encoder,
         Some(background_color),
+        texture.format(),
         &view,
         primitives,
         viewport,

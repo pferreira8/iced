@@ -10,16 +10,10 @@
 #![forbid(unsafe_code, rust_2018_idioms)]
 #![deny(
     unused_results,
-    clippy::extra_unused_lifetimes,
-    clippy::from_over_into,
-    clippy::needless_borrow,
-    clippy::new_without_default,
-    clippy::useless_conversion,
     missing_docs,
     unused_results,
     rustdoc::broken_intra_doc_links
 )]
-#![allow(clippy::inherent_to_string, clippy::type_complexity)]
 pub use iced_core as core;
 
 pub mod application;
@@ -35,6 +29,7 @@ pub mod rule;
 pub mod scrollable;
 pub mod slider;
 pub mod svg;
+pub mod text_editor;
 pub mod text_input;
 pub mod theme;
 pub mod toggler;

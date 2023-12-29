@@ -7,14 +7,8 @@
     missing_debug_implementations,
     missing_docs,
     unused_results,
-    clippy::extra_unused_lifetimes,
-    clippy::from_over_into,
-    clippy::needless_borrow,
-    clippy::new_without_default,
-    clippy::useless_conversion,
     rustdoc::broken_intra_doc_links
 )]
-#![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub use iced_renderer as renderer;
 pub use iced_renderer::graphics;
@@ -41,6 +35,7 @@ pub mod scrollable;
 pub mod slider;
 pub mod space;
 pub mod text;
+pub mod text_editor;
 pub mod text_input;
 pub mod toggler;
 pub mod tooltip;
@@ -92,6 +87,8 @@ pub use space::Space;
 #[doc(no_inline)]
 pub use text::Text;
 #[doc(no_inline)]
+pub use text_editor::TextEditor;
+#[doc(no_inline)]
 pub use text_input::TextInput;
 #[doc(no_inline)]
 pub use toggler::Toggler;
@@ -99,6 +96,13 @@ pub use toggler::Toggler;
 pub use tooltip::Tooltip;
 #[doc(no_inline)]
 pub use vertical_slider::VerticalSlider;
+
+#[cfg(feature = "wgpu")]
+pub mod shader;
+
+#[cfg(feature = "wgpu")]
+#[doc(no_inline)]
+pub use shader::Shader;
 
 #[cfg(feature = "svg")]
 pub mod svg;

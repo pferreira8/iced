@@ -205,7 +205,8 @@ enum Plan {
 }
 
 impl Plan {
-    pub const ALL: &[Self] = &[Self::Basic, Self::Pro, Self::Enterprise];
+    pub const ALL: &'static [Self] =
+        &[Self::Basic, Self::Pro, Self::Enterprise];
 }
 
 impl fmt::Display for Plan {
@@ -228,7 +229,10 @@ mod modal {
     use iced::alignment::Alignment;
     use iced::event;
     use iced::mouse;
-    use iced::{Color, Element, Event, Length, Point, Rectangle, Size};
+    use iced::{
+        BorderRadius, Color, Element, Event, Length, Point, Rectangle, Size,
+        Vector,
+    };
 
     /// A widget that centers a modal element over some base element
     pub struct Modal<'a, Message, Renderer> {
@@ -410,6 +414,7 @@ mod modal {
             renderer: &Renderer,
             _bounds: Size,
             position: Point,
+            _translation: Vector,
         ) -> layout::Node {
             let limits = layout::Limits::new(Size::ZERO, self.size)
                 .width(Length::Fill)
@@ -474,7 +479,7 @@ mod modal {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: layout.bounds(),
-                    border_radius: Default::default(),
+                    border_radius: BorderRadius::default(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },

@@ -13,11 +13,6 @@
     missing_debug_implementations,
     missing_docs,
     unused_results,
-    clippy::extra_unused_lifetimes,
-    clippy::from_over_into,
-    clippy::needless_borrow,
-    clippy::new_without_default,
-    clippy::useless_conversion,
     rustdoc::broken_intra_doc_links
 )]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
@@ -30,6 +25,9 @@ pub mod program;
 pub mod system;
 pub mod user_interface;
 pub mod window;
+
+#[cfg(feature = "multi-window")]
+pub mod multi_window;
 
 // We disable debug capabilities on release builds unless the `debug` feature
 // is explicitly enabled.

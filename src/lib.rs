@@ -156,14 +156,8 @@
     missing_debug_implementations,
     missing_docs,
     unused_results,
-    clippy::extra_unused_lifetimes,
-    clippy::from_over_into,
-    clippy::needless_borrow,
-    clippy::new_without_default,
-    clippy::useless_conversion,
     rustdoc::broken_intra_doc_links
 )]
-#![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 use iced_widget::graphics;
 use iced_widget::renderer;
@@ -173,6 +167,9 @@ use iced_winit::core;
 use iced_winit::runtime;
 
 pub use iced_futures::futures;
+
+#[cfg(feature = "highlighter")]
+pub use iced_highlighter as highlighter;
 
 mod error;
 mod sandbox;
@@ -185,6 +182,9 @@ pub mod window;
 #[cfg(feature = "advanced")]
 pub mod advanced;
 
+#[cfg(feature = "multi-window")]
+pub mod multi_window;
+
 pub use style::theme;
 
 pub use crate::core::alignment;
@@ -193,7 +193,6 @@ pub use crate::core::{
     color, Alignment, Background, BorderRadius, Color, ContentFit, Degrees,
     Gradient, Length, Padding, Pixels, Point, Radians, Rectangle, Size, Vector,
 };
-pub use crate::runtime::Command;
 
 pub mod clipboard {
     //! Access the clipboard.
@@ -240,6 +239,11 @@ pub mod mouse {
     pub use crate::core::mouse::{
         Button, Cursor, Event, Interaction, ScrollDelta,
     };
+}
+
+pub mod command {
+    //! Run asynchronous actions.
+    pub use crate::runtime::command::{channel, Command};
 }
 
 pub mod subscription {
@@ -290,6 +294,7 @@ pub mod widget {
 }
 
 pub use application::Application;
+pub use command::Command;
 pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;

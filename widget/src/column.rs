@@ -159,7 +159,7 @@ where
                     child
                         .as_widget()
                         .operate(state, layout, renderer, operation);
-                })
+                });
         });
     }
 
@@ -224,15 +224,17 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        for ((child, state), layout) in self
-            .children
-            .iter()
-            .zip(&tree.children)
-            .zip(layout.children())
-        {
-            child
-                .as_widget()
-                .draw(state, renderer, theme, style, layout, cursor, viewport);
+        if let Some(viewport) = layout.bounds().intersection(viewport) {
+            for ((child, state), layout) in self
+                .children
+                .iter()
+                .zip(&tree.children)
+                .zip(layout.children())
+            {
+                child.as_widget().draw(
+                    state, renderer, theme, style, layout, cursor, &viewport,
+                );
+            }
         }
     }
 

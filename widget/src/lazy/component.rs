@@ -511,7 +511,7 @@ impl<'a, 'b, Message, Renderer, Event, S> Drop
     for Overlay<'a, 'b, Message, Renderer, Event, S>
 {
     fn drop(&mut self) {
-        if let Some(heads) = self.0.take().map(|inner| inner.into_heads()) {
+        if let Some(heads) = self.0.take().map(Inner::into_heads) {
             *heads.instance.tree.borrow_mut().borrow_mut() = Some(heads.tree);
         }
     }
@@ -577,9 +577,10 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        translation: Vector,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            overlay.layout(renderer, bounds, position)
+            overlay.layout(renderer, bounds, position, translation)
         })
         .unwrap_or_default()
     }

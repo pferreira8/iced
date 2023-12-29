@@ -238,6 +238,7 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         value: Option<&Value>,
+        viewport: &Rectangle,
     ) {
         draw(
             renderer,
@@ -250,7 +251,8 @@ where
             self.is_secure,
             self.icon.as_ref(),
             &self.style,
-        )
+            viewport,
+        );
     }
 }
 
@@ -362,7 +364,7 @@ where
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         draw(
             renderer,
@@ -375,7 +377,8 @@ where
             self.is_secure,
             self.icon.as_ref(),
             &self.style,
-        )
+            viewport,
+        );
     }
 
     fn mouse_interaction(
@@ -523,18 +526,15 @@ where
         shaping: text::Shaping::Advanced,
     };
 
-    renderer.update_paragraph(&mut state.placeholder, placeholder_text);
+    state.placeholder.update(placeholder_text);
 
     let secure_value = is_secure.then(|| value.secure());
     let value = secure_value.as_ref().unwrap_or(value);
 
-    renderer.update_paragraph(
-        &mut state.value,
-        Text {
-            content: &value.to_string(),
-            ..placeholder_text
-        },
-    );
+    state.value.update(Text {
+        content: &value.to_string(),
+        ..placeholder_text
+    });
 
     if let Some(icon) = icon {
         let icon_text = Text {
@@ -548,7 +548,7 @@ where
             shaping: text::Shaping::Advanced,
         };
 
-        renderer.update_paragraph(&mut state.icon, icon_text);
+        state.icon.update(icon_text);
 
         let icon_width = state.icon.min_width();
 
@@ -622,7 +622,7 @@ where
             font,
             size,
             line_height,
-        )
+        );
     };
 
     match event {
@@ -849,7 +849,7 @@ where
                                 state.cursor.move_left_by_words(value);
                             }
                         } else if modifiers.shift() {
-                            state.cursor.select_left(value)
+                            state.cursor.select_left(value);
                         } else {
                             state.cursor.move_left(value);
                         }
@@ -864,7 +864,7 @@ where
                                 state.cursor.move_right_by_words(value);
                             }
                         } else if modifiers.shift() {
-                            state.cursor.select_right(value)
+                            state.cursor.select_right(value);
                         } else {
                             state.cursor.move_right(value);
                         }
@@ -1003,14 +1003,14 @@ where
 
             state.keyboard_modifiers = modifiers;
         }
-        Event::Window(window::Event::Unfocused) => {
+        Event::Window(_, window::Event::Unfocused) => {
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
                 focus.is_window_focused = false;
             }
         }
-        Event::Window(window::Event::Focused) => {
+        Event::Window(_, window::Event::Focused) => {
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
@@ -1020,7 +1020,7 @@ where
                 shell.request_redraw(window::RedrawRequest::NextFrame);
             }
         }
-        Event::Window(window::Event::RedrawRequested(now)) => {
+        Event::Window(_, window::Event::RedrawRequested(now)) => {
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
@@ -1058,6 +1058,7 @@ pub fn draw<Renderer>(
     is_secure: bool,
     icon: Option<&Icon<Renderer::Font>>,
     style: &<Renderer::Theme as StyleSheet>::Style,
+    viewport: &Rectangle,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
@@ -1099,6 +1100,7 @@ pub fn draw<Renderer>(
             &state.icon,
             icon_layout.bounds().center(),
             appearance.icon_color,
+            *viewport,
         );
     }
 
@@ -1192,39 +1194,31 @@ pub fn draw<Renderer>(
         (None, 0.0)
     };
 
-    let text_width = state.value.min_width();
-
-    let render = |renderer: &mut Renderer| {
-        if let Some((cursor, color)) = cursor {
+    if let Some((cursor, color)) = cursor {
+        renderer.with_translation(Vector::new(-offset, 0.0), |renderer| {
             renderer.fill_quad(cursor, color);
-        } else {
-            renderer.with_translation(Vector::ZERO, |_| {});
-        }
-
-        renderer.fill_paragraph(
-            if text.is_empty() {
-                &state.placeholder
-            } else {
-                &state.value
-            },
-            Point::new(text_bounds.x, text_bounds.center_y()),
-            if text.is_empty() {
-                theme.placeholder_color(style)
-            } else if is_disabled {
-                theme.disabled_color(style)
-            } else {
-                theme.value_color(style)
-            },
-        );
-    };
-
-    if text_width > text_bounds.width {
-        renderer.with_layer(text_bounds, |renderer| {
-            renderer.with_translation(Vector::new(-offset, 0.0), render)
         });
     } else {
-        render(renderer);
+        renderer.with_translation(Vector::ZERO, |_| {});
     }
+
+    renderer.fill_paragraph(
+        if text.is_empty() {
+            &state.placeholder
+        } else {
+            &state.value
+        },
+        Point::new(text_bounds.x, text_bounds.center_y())
+            - Vector::new(offset, 0.0),
+        if text.is_empty() {
+            theme.placeholder_color(style)
+        } else if is_disabled {
+            theme.disabled_color(style)
+        } else {
+            theme.value_color(style)
+        },
+        text_bounds,
+    );
 }
 
 /// Computes the current [`mouse::Interaction`] of the [`TextInput`].
@@ -1342,29 +1336,29 @@ impl<P: text::Paragraph> operation::Focusable for State<P> {
     }
 
     fn focus(&mut self) {
-        State::focus(self)
+        State::focus(self);
     }
 
     fn unfocus(&mut self) {
-        State::unfocus(self)
+        State::unfocus(self);
     }
 }
 
 impl<P: text::Paragraph> operation::TextInput for State<P> {
     fn move_cursor_to_front(&mut self) {
-        State::move_cursor_to_front(self)
+        State::move_cursor_to_front(self);
     }
 
     fn move_cursor_to_end(&mut self) {
-        State::move_cursor_to_end(self)
+        State::move_cursor_to_end(self);
     }
 
     fn move_cursor_to(&mut self, position: usize) {
-        State::move_cursor_to(self, position)
+        State::move_cursor_to(self, position);
     }
 
     fn select_all(&mut self) {
-        State::select_all(self)
+        State::select_all(self);
     }
 }
 
@@ -1461,7 +1455,7 @@ fn replace_paragraph<Renderer>(
     let mut children_layout = layout.children();
     let text_bounds = children_layout.next().unwrap().bounds();
 
-    state.value = renderer.create_paragraph(Text {
+    state.value = Renderer::Paragraph::with_text(Text {
         font,
         line_height,
         content: &value.to_string(),
